@@ -55,7 +55,7 @@ def handle_message(event):
     else:
         line_bot_api.reply_message(
             event.reply_token, 
-            TextSendMessage(text=event.message.text+'ค่ะ'))
+            TextSendMessage(text=event.message.text+'เปลียนจากค่ะ เป็นจ้า'))
     
 
 if __name__ == "__main__":
