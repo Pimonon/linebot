@@ -12,9 +12,11 @@ from linebot import (
 from linebot.exceptions import (
     InvalidSignatureError
 )
+
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
-    ImageMessage, VideoMessage, AudioMessage
+   MessageEvent, TextMessage, TextSendMessage,
+   ImageMessage, VideoMessage, AudioMessage,
+   StickerMessage,StickerSendMessage, JoinEvent, SourceGroup
 )
 
 import oil_price
@@ -22,10 +24,26 @@ import oil_price
 app = Flask(__name__)
 
 latest_image_path = ""
+#pimonon
+#line_bot_api = LineBotApi('pm6p/yGQjd0IYTvNC0aO4fDsIIwVJb4IPhwVAirn93xHlOiPte+OQ946eotXFZwKiTIqFiflqomCTAStOuhFNMgFv4N27ZuEm97sdjUzXEulb8vKmmGu5AR+GXaJIXsQ/O+QLxkW+i8CyvcpD6yo4AdB04t89/1O/w1cDnyilFU=')
+#handler = WebhookHandler('e75dea7b89d456da3305287879331d0e')
 
-line_bot_api = LineBotApi('pm6p/yGQjd0IYTvNC0aO4fDsIIwVJb4IPhwVAirn93xHlOiPte+OQ946eotXFZwKiTIqFiflqomCTAStOuhFNMgFv4N27ZuEm97sdjUzXEulb8vKmmGu5AR+GXaJIXsQ/O+QLxkW+i8CyvcpD6yo4AdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('e75dea7b89d456da3305287879331d0e')
+channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
+channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 
+if channel_secret is None:
+   print('Specify LINE_CHANNEL_SECRET as environment variable.')
+   sys.exit(1)
+if channel_access_token is None:
+   print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
+   sys.exit(1)
+
+line_bot_api = LineBotApi(channel_access_token)
+handler = WebhookHandler(channel_secret)
+
+#hippopo
+line_bot_api = LineBotApi('B9J4tYqzVR6NERpWMjzIP5bZ9SNSJESwzeFUi5zDTGsqqdz7lgjuGNyeA383nu3AtEJoRYULmtwVeOKSqv3pDZEtRlA5eUjP5HvhBXydWYYtz2XsYbaDyAALD/+aMniR1UZWWTqmx9vFFJKQL6PHdQdB04t89/1O/w1cDnyilFU=')
+handler = WebhookHandler('0cb6b5c6311053662e07b9538a896be8')
 
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 
@@ -66,10 +84,87 @@ def callback():
     return 'OK'
 
 
+
+@handler.add(MessageEvent, message=StickerMessage)
+def handle_sticker_message(event):
+   # Handle webhook verification
+   if event.reply_token == '00000000000000000000000000000000':
+       return 'OK'
+
+@handler.add(JoinEvent)
+def handle_join(event):
+   # group_id = event.source.group_id
+   # line_bot_api.get_group_member_profile(group_id,member_id)
+   # member_ids_res = line_bot_api.get_group_member_ids(group_id)
+   # print(member_ids_res.member_ids)
+   # print(member_ids_res.next)
+
+   try:
+       profile = line_bot_api.get_group_member_profile(
+           event.source.group_id,'U89b516d04f46a34859942624d4a57a79'
+       )
+       line_bot_api.reply_message(
+           event.reply_token,
+           [
+               TextSendMessage(text='ดีดี'),
+               StickerSendMessage(
+                   package_id=1,
+                   sticker_id=2
+               )
+           ]
+       )        
+   except LineBotApiError as e:
+       print(e.status_code)
+       print(e.error.message)
+       print(e.error.details)
+       line_bot_api.reply_message(
+           event.reply_token,
+           [
+               TextSendMessage(text='หัวหน้าไม่อยู่ในห้องนี้\nไปละค่ะ\nบัย'),
+           ]
+       )
+       line_bot_api.leave_group(event.source.group_id)
+   
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     global latest_image_path
 
+    if event.reply_token == 'ffffffffffffffffffffffffffffffff':
+       return 'OK'
+
+    if event.message.text == 'ไปเหอะ':
+       if isinstance(event.source,SourceGroup):
+           if event.source.user_id == 'U89b516d04f46a34859942624d4a57a79':
+               line_bot_api.reply_message(
+                   event.reply_token,
+                   TextMessage(text='บะบายค่า')
+               )
+               line_bot_api.leave_group(event.source.group_id)
+           else:
+               line_bot_api.reply_message(
+                   event.reply_token,
+                   TextMessage(text='ไม่')
+               )
+    
+    elif event.message.text == 'profile':
+       user_id = event.source.user_id
+       profile = line_bot_api.get_profile(user_id)
+       # image_message = ImageSendMessage(
+       #             original_content_url=profile.picture_url,
+       #             preview_image_url=profile.picture_url
+       #         )
+
+       line_bot_api.reply_message(
+           event.reply_token,
+           [
+               TextSendMessage(text=profile.display_name),
+               TextSendMessage(text=profile.user_id),
+               TextSendMessage(text=profile.picture_url),
+               TextSendMessage(text=profile.status_message),
+               # image_message
+           ]
+       )
+    
     if event.message.text == 'ราคาน้ำมัน':
         l = oil_price.get_prices()
         s = ""
@@ -135,6 +230,7 @@ def handle_content_message(event):
         event.reply_token, [
             TextSendMessage(text='เก็บรูปให้แล้วค่ะ')
         ])
+
 
 
 
